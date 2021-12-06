@@ -18,7 +18,7 @@ import (
 const (
 	// Timeout operations after N seconds
 	connectTimeout           = 5
-	connectionStringTemplate = "mongodb://%s:%s@%s"
+	connectionStringTemplate = "mongodb+srv://%s:%s@%s"
 )
 
 // GetConnection Retrieves a client to the MongoDB
@@ -60,7 +60,7 @@ func GetAllTasks() ([]*Task, error) {
 	defer client.Disconnect(ctx)
 	db := client.Database("tasks")
 	collection := db.Collection("tasks")
-	cursor, err := collection.Find(ctx, bson.D{})
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -74,23 +74,27 @@ func GetAllTasks() ([]*Task, error) {
 }
 
 // GetTaskByID Retrives a task by its id from the db
-func GetTaskByID(id primitive.ObjectID) (*Task, error) {
+func GetTaskByID(id string) (*Task, error) {
 	var task *Task
-
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Println("Invalid id")
+	}
 	client, ctx, cancel := getConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 	db := client.Database("tasks")
 	collection := db.Collection("tasks")
-	result := collection.FindOne(ctx, bson.D{})
+	result := collection.FindOne(ctx, bson.M{"_id": objectId})
 	if result == nil {
-		return nil, errors.New("Could not find a Task")
+		return nil, errors.New("could not find a task")
 	}
-	err := result.Decode(&task)
 
-	if err != nil {
-		log.Printf("Failed marshalling %v", err)
-		return nil, err
+	err2 := result.Decode(&task)
+
+	if err2 != nil {
+		log.Printf("Failed marshalling %v", err2)
+		return nil, err2
 	}
 	log.Printf("Tasks: %v", task)
 	return task, nil
@@ -101,7 +105,7 @@ func Create(task *Task) (primitive.ObjectID, error) {
 	client, ctx, cancel := getConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	task.ID = primitive.NewObjectID()
+	task._id = primitive.NewObjectID()
 
 	result, err := client.Database("tasks").Collection("tasks").InsertOne(ctx, task)
 	if err != nil {
@@ -130,7 +134,7 @@ func Update(task *Task) (*Task, error) {
 		ReturnDocument: &after,
 	}
 
-	err := client.Database("tasks").Collection("tasks").FindOneAndUpdate(ctx, bson.M{"_id": task.ID}, update, &opt).Decode(&updatedTask)
+	err := client.Database("tasks").Collection("tasks").FindOneAndUpdate(ctx, bson.M{"_id": task._id}, update, &opt).Decode(&updatedTask)
 	if err != nil {
 		log.Printf("Could not save Task: %v", err)
 		return nil, err

@@ -1,11 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
 
 func handleGetTasks(c *gin.Context) {
 	var loadedTasks, err = GetAllTasks()
@@ -22,12 +34,13 @@ func handleGetTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
 		return
 	}
-	var loadedTask, err = GetTaskByID(task.ID)
+	taskid := c.Param("id")
+	var loadedTask, err = GetTaskByID(taskid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"msg": err})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ID": loadedTask.ID, "Body": loadedTask.Body})
+	c.JSON(http.StatusOK, gin.H{"ID": loadedTask._id, "Title": loadedTask.Title, "Body": loadedTask.Body})
 }
 
 func handleCreateTask(c *gin.Context) {
@@ -61,10 +74,11 @@ func handleUpdateTask(c *gin.Context) {
 }
 
 func main() {
+	fmt.Printf("%s mongodb\n", os.Getenv("MONGODB_USERNAME"))
 	r := gin.Default()
 	r.GET("/tasks/:id", handleGetTask)
 	r.GET("/tasks/", handleGetTasks)
-	r.PUT("/tasks/", handleCreateTask)
-	r.POST("/tasks/", handleUpdateTask)
+	r.PUT("/tasks/", handleUpdateTask)
+	r.POST("/tasks/", handleCreateTask)
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
