@@ -17,7 +17,7 @@ import (
 
 const (
 	// Timeout operations after N seconds
-	connectTimeout           = 5
+	connectTimeout           = 10
 	connectionStringTemplate = "mongodb+srv://%s:%s@%s"
 )
 
@@ -65,8 +65,7 @@ func GetAllTasks() ([]*Task, error) {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	err = cursor.All(ctx, &tasks)
-	if err != nil {
+	if err = cursor.All(ctx, &tasks); err != nil {
 		log.Printf("Failed marshalling %v", err)
 		return nil, err
 	}
@@ -105,7 +104,6 @@ func Create(task *Task) (primitive.ObjectID, error) {
 	client, ctx, cancel := getConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	task._id = primitive.NewObjectID()
 
 	result, err := client.Database("tasks").Collection("tasks").InsertOne(ctx, task)
 	if err != nil {
@@ -127,14 +125,14 @@ func Update(task *Task) (*Task, error) {
 		"$set": task,
 	}
 
-	upsert := true
+	upsert := false
 	after := options.After
 	opt := options.FindOneAndUpdateOptions{
 		Upsert:         &upsert,
 		ReturnDocument: &after,
 	}
 
-	err := client.Database("tasks").Collection("tasks").FindOneAndUpdate(ctx, bson.M{"_id": task._id}, update, &opt).Decode(&updatedTask)
+	err := client.Database("tasks").Collection("tasks").FindOneAndUpdate(ctx, bson.M{"_id": task.ID}, update, &opt).Decode(&updatedTask)
 	if err != nil {
 		log.Printf("Could not save Task: %v", err)
 		return nil, err
