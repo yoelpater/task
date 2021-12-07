@@ -10,7 +10,7 @@ import (
 )
 
 func hello(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"msg": "Helthy"})
+	c.JSON(http.StatusOK, gin.H{"msg": "Healthy"})
 }
 
 func handleGetTasks(c *gin.Context) {
