@@ -139,3 +139,98 @@ func Update(task *Task) (*Task, error) {
 	}
 	return updatedTask, nil
 }
+
+//DOCTOR DB HANDLER
+
+func GetAllDoctors(limit int64, page int64) ([]*Doctor, error) {
+	var doctors []*Doctor
+
+	client, ctx, cancel := getConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	options := options.Find()
+	options.SetLimit(limit)
+	if page > 0 {
+		options.SetSkip((page - 1) * limit)
+	} else {
+		options.SetSkip(0)
+	}
+
+	db := client.Database("doctors")
+	collection := db.Collection("doctors")
+	cursor, err := collection.Find(ctx, bson.M{}, options)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	if err = cursor.All(ctx, &doctors); err != nil {
+		log.Printf("Failed marshalling %v", err)
+		return nil, err
+	}
+	return doctors, nil
+}
+
+func GetDoctorByID(id string) (*Doctor, error) {
+	var doctor *Doctor
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Println("Invalid id")
+	}
+	client, ctx, cancel := getConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	db := client.Database("doctors")
+	collection := db.Collection("doctors")
+	result := collection.FindOne(ctx, bson.M{"_id": objectId})
+	if result == nil {
+		return nil, errors.New("could not find a task")
+	}
+
+	err = result.Decode(&doctor)
+
+	if err != nil {
+		log.Printf("Failed marshalling %v", err)
+		return nil, err
+	}
+	log.Printf("Tasks: %v", doctor)
+	return doctor, nil
+}
+
+func CreateDoctor(doctor *Doctor) (primitive.ObjectID, error) {
+	client, ctx, cancel := getConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	result, err := client.Database("doctors").Collection("doctors").InsertOne(ctx, doctor)
+	if err != nil {
+		log.Printf("Could not create Task: %v", err)
+		return primitive.NilObjectID, err
+	}
+	oid := result.InsertedID.(primitive.ObjectID)
+	return oid, nil
+}
+
+func UpdateDoctorbyID(doctor *Doctor) (*Doctor, error) {
+	var updatedDoctor *Doctor
+	client, ctx, cancel := getConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	update := bson.M{
+		"$set": doctor,
+	}
+
+	upsert := false
+	after := options.After
+	opt := options.FindOneAndUpdateOptions{
+		Upsert:         &upsert,
+		ReturnDocument: &after,
+	}
+
+	err := client.Database("doctors").Collection("doctors").FindOneAndUpdate(ctx, bson.M{"_id": doctor.ID}, update, &opt).Decode(&updatedDoctor)
+	if err != nil {
+		log.Printf("Could not save Task: %v", err)
+		return nil, err
+	}
+	return updatedDoctor, nil
+}

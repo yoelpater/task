@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -67,6 +68,75 @@ func handleUpdateTask(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"task": savedTask})
 }
 
+func handleGetDoctors(c *gin.Context) {
+	limitquery := c.DefaultQuery("limit", "60")
+	pagingquery := c.DefaultQuery("page", "0")
+
+	limit, err2 := strconv.ParseInt(limitquery, 10, 64)
+	if err2 != nil {
+		// handle error
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "Something is wrong with limit value"})
+		return
+	}
+	page, err3 := strconv.ParseInt(pagingquery, 10, 64)
+	if err3 != nil {
+		// handle error
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "Something is wrong with page value"})
+		return
+	}
+	var loadedDoctors, err = GetAllDoctors(limit, page)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"doctors": loadedDoctors})
+}
+
+func handleGetOneDoctor(c *gin.Context) {
+	var doctor Doctor
+	if err := c.BindUri(&doctor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		return
+	}
+	doctorid := c.Param("id")
+	var loadedDoctor, err = GetDoctorByID(doctorid)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, loadedDoctor)
+}
+
+func handleCreateDoctor(c *gin.Context) {
+	var doctor Doctor
+	if err := c.ShouldBindJSON(&doctor); err != nil {
+		log.Print(err)
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		return
+	}
+	id, err := CreateDoctor(&doctor)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+func handleUpdateDoctor(c *gin.Context) {
+	var doctor Doctor
+	if err := c.ShouldBindJSON(&doctor); err != nil {
+		log.Print(err)
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		return
+	}
+	savedTask, err := UpdateDoctorbyID(&doctor)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"task": savedTask})
+}
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 	r.GET("/", hello)
@@ -77,6 +147,11 @@ func setupRouter() *gin.Engine {
 	r.GET("/tasks/", handleGetTasks)
 	r.PUT("/tasks/", handleUpdateTask)
 	r.POST("/tasks/", handleCreateTask)
+
+	r.GET("/doctors/", handleGetDoctors)
+	r.POST("/doctors/", handleCreateDoctor)
+	r.GET("/doctors/:id", handleGetOneDoctor)
+	r.PUT("/doctors/", handleUpdateDoctor)
 	return r
 }
 
