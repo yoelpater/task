@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,6 +70,7 @@ func handleUpdateTask(c *gin.Context) {
 }
 
 func handleGetDoctors(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	limitquery := c.DefaultQuery("limit", "60")
 	pagingquery := c.DefaultQuery("page", "0")
 
@@ -84,12 +86,12 @@ func handleGetDoctors(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "Something is wrong with page value"})
 		return
 	}
-	var loadedDoctors, err = GetAllDoctors(limit, page)
+	var loadedDoctors, err, totalpage = GetAllDoctors(limit, page)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"doctors": loadedDoctors})
+	c.JSON(http.StatusOK, gin.H{"pages": totalpage, "doctors": loadedDoctors})
 }
 
 func handleGetOneDoctor(c *gin.Context) {
@@ -163,5 +165,12 @@ func main() {
 	fmt.Printf("mongodb %s mongodb\n", os.Getenv("MONGODB_USERNAME"))
 	fmt.Printf("mongodb %s mongodb\n", os.Getenv("MONGODB_ENDPOINT"))
 	r := setupRouter()
+
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000"}
+	// config.AllowOrigins == []string{"http://google.com", "http://facebook.com"}
+	//config.AllowAllOrigins = true
+
+	r.Use(cors.New(config))
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }

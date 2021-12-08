@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"time"
 
@@ -141,13 +142,13 @@ func Update(task *Task) (*Task, error) {
 }
 
 //DOCTOR DB HANDLER
-
-func GetAllDoctors(limit int64, page int64) ([]*Doctor, error) {
+func GetAllDoctors(limit int64, page int64) ([]*Doctor, error, int64) {
 	var doctors []*Doctor
 
 	client, ctx, cancel := getConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
+
 	options := options.Find()
 	options.SetLimit(limit)
 	if page > 0 {
@@ -158,16 +159,23 @@ func GetAllDoctors(limit int64, page int64) ([]*Doctor, error) {
 
 	db := client.Database("doctors")
 	collection := db.Collection("doctors")
+	totalcount, err := collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, err, -1
+	}
+
+	totalpage := int64(math.Ceil(float64(totalcount) / float64(limit)))
+
 	cursor, err := collection.Find(ctx, bson.M{}, options)
 	if err != nil {
-		return nil, err
+		return nil, err, -1
 	}
 	defer cursor.Close(ctx)
 	if err = cursor.All(ctx, &doctors); err != nil {
 		log.Printf("Failed marshalling %v", err)
-		return nil, err
+		return nil, err, -1
 	}
-	return doctors, nil
+	return doctors, nil, totalpage
 }
 
 func GetDoctorByID(id string) (*Doctor, error) {
