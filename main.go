@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gin-contrib/cors"
@@ -70,7 +68,6 @@ func handleUpdateTask(c *gin.Context) {
 }
 
 func handleGetDoctors(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
 	limitquery := c.DefaultQuery("limit", "60")
 	pagingquery := c.DefaultQuery("page", "0")
 	namequery := c.DefaultQuery("name", "")
@@ -98,7 +95,6 @@ func handleGetDoctors(c *gin.Context) {
 }
 
 func handleGetOneDoctor(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.BindUri(&doctor); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
@@ -114,7 +110,6 @@ func handleGetOneDoctor(c *gin.Context) {
 }
 
 func handleCreateDoctor(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.ShouldBindJSON(&doctor); err != nil {
 		log.Print(err)
@@ -130,7 +125,6 @@ func handleCreateDoctor(c *gin.Context) {
 }
 
 func handleUpdateDoctor(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.ShouldBindJSON(&doctor); err != nil {
 		log.Print(err)
@@ -147,6 +141,9 @@ func handleUpdateDoctor(c *gin.Context) {
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	r.Use(cors.New(config))
 	r.GET("/", hello)
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
@@ -168,15 +165,6 @@ func main() {
 	//if err != nil {
 	//	log.Fatal("Error loading .env file")
 	//}
-	fmt.Printf("mongodb %s mongodb\n", os.Getenv("MONGODB_USERNAME"))
-	fmt.Printf("mongodb %s mongodb\n", os.Getenv("MONGODB_ENDPOINT"))
 	r := setupRouter()
-
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"}
-	// config.AllowOrigins == []string{"http://google.com", "http://facebook.com"}
-	// config.AllowAllOrigins = true
-
-	r.Use(cors.New(config))
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
