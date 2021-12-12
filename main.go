@@ -74,6 +74,7 @@ func handleGetDoctors(c *gin.Context) {
 	limitquery := c.DefaultQuery("limit", "60")
 	pagingquery := c.DefaultQuery("page", "0")
 	namequery := c.DefaultQuery("name", "")
+	genderquery := c.DefaultQuery("gender", "")
 	servicequery := c.DefaultQuery("servicerole", "")
 
 	limit, err2 := strconv.ParseInt(limitquery, 10, 64)
@@ -88,7 +89,7 @@ func handleGetDoctors(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "Something is wrong with page value"})
 		return
 	}
-	var loadedDoctors, totalpage, err = GetAllDoctors(limit, page, namequery, servicequery)
+	var loadedDoctors, totalpage, err = GetAllDoctors(limit, page, namequery, servicequery, genderquery)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"msg": err.Error()})
 		return

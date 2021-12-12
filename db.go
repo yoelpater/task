@@ -142,7 +142,7 @@ func Update(task *Task) (*Task, error) {
 }
 
 //DOCTOR DB HANDLER
-func GetAllDoctors(limit int64, page int64, name string, service string) ([]*Doctor, int64, error) {
+func GetAllDoctors(limit int64, page int64, name string, service string, gender string) ([]*Doctor, int64, error) {
 	var doctors []*Doctor
 
 	client, ctx, cancel := getConnection()
@@ -163,6 +163,9 @@ func GetAllDoctors(limit int64, page int64, name string, service string) ([]*Doc
 	}
 	if service != "" {
 		filter["servicerole"] = service
+	}
+	if gender != "" {
+		filter["gender"] = gender
 	}
 
 	db := client.Database("doctors")
