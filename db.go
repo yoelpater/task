@@ -142,7 +142,7 @@ func Update(task *Task) (*Task, error) {
 }
 
 //DOCTOR DB HANDLER
-func GetAllDoctors(limit int64, page int64) ([]*Doctor, error, int64) {
+func GetAllDoctors(limit int64, page int64, name string, service string) ([]*Doctor, int64, error) {
 	var doctors []*Doctor
 
 	client, ctx, cancel := getConnection()
@@ -156,26 +156,34 @@ func GetAllDoctors(limit int64, page int64) ([]*Doctor, error, int64) {
 	} else {
 		options.SetSkip(0)
 	}
+	filter := bson.M{}
+	if name != "" {
+		//filter = bson.M{"title": params.Title}
+		filter["name"] = name
+	}
+	if service != "" {
+		filter["servicerole"] = service
+	}
 
 	db := client.Database("doctors")
 	collection := db.Collection("doctors")
-	totalcount, err := collection.CountDocuments(ctx, bson.M{})
+	totalcount, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err, -1
+		return nil, 0, err
 	}
-
 	totalpage := int64(math.Ceil(float64(totalcount) / float64(limit)))
 
-	cursor, err := collection.Find(ctx, bson.M{}, options)
+	cursor, err := collection.Find(ctx, filter, options)
 	if err != nil {
-		return nil, err, -1
+		return nil, 0, err
 	}
+
 	defer cursor.Close(ctx)
 	if err = cursor.All(ctx, &doctors); err != nil {
 		log.Printf("Failed marshalling %v", err)
-		return nil, err, -1
+		return nil, 0, err
 	}
-	return doctors, nil, totalpage
+	return doctors, totalpage, nil
 }
 
 func GetDoctorByID(id string) (*Doctor, error) {

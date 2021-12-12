@@ -73,6 +73,8 @@ func handleGetDoctors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	limitquery := c.DefaultQuery("limit", "60")
 	pagingquery := c.DefaultQuery("page", "0")
+	namequery := c.DefaultQuery("name", "")
+	servicequery := c.DefaultQuery("servicerole", "")
 
 	limit, err2 := strconv.ParseInt(limitquery, 10, 64)
 	if err2 != nil {
@@ -86,7 +88,7 @@ func handleGetDoctors(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "Something is wrong with page value"})
 		return
 	}
-	var loadedDoctors, err, totalpage = GetAllDoctors(limit, page)
+	var loadedDoctors, totalpage, err = GetAllDoctors(limit, page, namequery, servicequery)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"msg": err.Error()})
 		return
@@ -95,6 +97,7 @@ func handleGetDoctors(c *gin.Context) {
 }
 
 func handleGetOneDoctor(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.BindUri(&doctor); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
@@ -110,6 +113,7 @@ func handleGetOneDoctor(c *gin.Context) {
 }
 
 func handleCreateDoctor(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.ShouldBindJSON(&doctor); err != nil {
 		log.Print(err)
@@ -125,6 +129,7 @@ func handleCreateDoctor(c *gin.Context) {
 }
 
 func handleUpdateDoctor(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	var doctor Doctor
 	if err := c.ShouldBindJSON(&doctor); err != nil {
 		log.Print(err)
@@ -169,7 +174,7 @@ func main() {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000"}
 	// config.AllowOrigins == []string{"http://google.com", "http://facebook.com"}
-	//config.AllowAllOrigins = true
+	// config.AllowAllOrigins = true
 
 	r.Use(cors.New(config))
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
