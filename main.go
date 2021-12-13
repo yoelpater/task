@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -116,6 +117,9 @@ func handleCreateDoctor(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
+	//TODO : IMPLEMENT CHINESE CHARACTER SEGEMENTATION
+	words := strings.Split(doctor.Name, "")
+	doctor.TextIndex = strings.Join(words, "/")
 	id, err := CreateDoctor(&doctor)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})

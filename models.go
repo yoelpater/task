@@ -22,4 +22,5 @@ type Doctor struct {
 	Age                  int                `json:"age,omitempty" bson:"age,omitempty"`
 	University           string             `json:"university,omitempty" bson:"university,omitempty"`
 	Gender               string             `json:"gender,omitempty" bson:"gender,omitempty"`
+	TextIndex            string             `json:"textIndex,omitempty" bson:"textindex,omitempty"`
 }

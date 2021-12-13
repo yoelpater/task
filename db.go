@@ -156,10 +156,13 @@ func GetAllDoctors(limit int64, page int64, name string, service string, gender 
 	} else {
 		options.SetSkip(0)
 	}
+	options.SetSort(bson.D{primitive.E{Key: "rating", Value: -1}})
 	filter := bson.M{}
 	if name != "" {
 		//filter = bson.M{"title": params.Title}
-		filter["name"] = name
+		filter["$text"] = bson.M{
+			"$search": name,
+		}
 	}
 	if service != "" {
 		filter["servicerole"] = service
@@ -170,6 +173,18 @@ func GetAllDoctors(limit int64, page int64, name string, service string, gender 
 
 	db := client.Database("doctors")
 	collection := db.Collection("doctors")
+
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"textindex": "text",
+		}, Options: nil,
+	}
+
+	_, err := collection.Indexes().CreateOne(ctx, mod)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	totalcount, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
 		return nil, 0, err
